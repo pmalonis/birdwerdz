@@ -89,8 +89,8 @@ def classify(recordings, template, output_name, nclusters=10):
             print("Found matches for %s" %(entry.name))
 
     #clustering
-    print("Clustering...")
-    cluster(output_name, nclusters)
+    # print("Clustering...")
+    # cluster(output_name, nclusters)
         
 
 def cluster(file, nclusters=10):
