@@ -69,7 +69,7 @@ def classify(recordings, template, output_name, nclusters=10):
             vocalization = entry.values()[0]
             fs_voc = vocalization.attrs['sampling_rate']                
 
-            sampled_data, spectrograms, dtw_paths = dtw.find_matches(
+            sampled_data, spectrograms, dtw_paths,_ = dtw.find_matches(
                 vocalization, template, fs_voc, fs_temp)
             
             #resizing sampled data so it can be put in array

@@ -10,6 +10,7 @@ cimport cython
 import scipy.signal as _signal
 import libtfr as _ltfr
 import scipy.cluster.vq as _vq
+from scipy.interpolate import interp1d as _interp1d
 _DTYPE = _np.float64
 ctypedef _np.float64_t _DTYPE_t
 
@@ -20,7 +21,7 @@ cdef extern void assign_D (_DTYPE_t* distance, _DTYPE_t* D_entry, int* T_entry, 
 
 #spectrogram parameters
 tstep = .001
-fft_res = 128
+fft_res = 256
 win_len = fft_res*2
 window = _signal.hann(win_len)
    
@@ -34,11 +35,12 @@ def process_recording(signal, fs):
 
     b = _signal.firwin(numtaps, noise_cutoff, pass_zero=False,  nyq=fs/2.)
     filtered = _signal.lfilter(b, 1, signal)    
-    spec=_ltfr.stft(filtered, window, int(tstep*fs))
+    # ensuring that log spectrogram doesn't give -inf
+    spec=_np.abs(_ltfr.stft(filtered, window, int(tstep*fs)))
+    spec[spec==0]=_np.min(spec[spec!=0])
+    log_spec = _np.log(spec)
 
-    log_amp = _np.log(_np.abs(spec))
-
-    return log_amp
+    return log_spec
 
 
 @cython.boundscheck(False)
@@ -260,8 +262,8 @@ def _get_paths(D, T, d,  t_0=0):
             T[i,:] = -1
             
     paths=_np.delete(paths,_np.s_[counter:],0)
-
-    return paths
+    distances = D[paths[:,-1],-1]
+    return paths, distances
 
 
 def find_matches(vocalization, template, fs_voc, fs_temp):
@@ -282,8 +284,8 @@ def find_matches(vocalization, template, fs_voc, fs_temp):
 
     Returns three lists, each containing one entry for each match
     
-    sampled_data - a list of the segments of samlped data where each motif match
-                   occurs
+    motif_intervals - a 2d array in which each row contains the start and stop sample
+                      for each match
 
     spectrograms - a 3d array containing the temporally warped spectrograms of each match.
                    The first dimension represents individual matches, the second dimension
@@ -293,6 +295,8 @@ def find_matches(vocalization, template, fs_voc, fs_temp):
                 of the columns of the vocalization spectrogram used in the temporally
                 warped spectrograms
  
+    distances - A 1d array containing the distance of each match's spectrogram to the 
+                template spectrogram
     """
 
         
@@ -301,18 +305,17 @@ def find_matches(vocalization, template, fs_voc, fs_temp):
     d=_dist_mat(V_spec, T_spec)
     D,T=_accumulated_dist(d)
 
-    dtw_paths=_get_paths(D, T, d)
+    dtw_paths,distances=_get_paths(D, T, d)
 
     spectrograms = _np.zeros((dtw_paths.shape[0],) + T_spec.shape)
     for i,p in enumerate(dtw_paths):
         spectrograms[i,:,:] = V_spec[:,p]
     
     spec_step = int(tstep*fs_voc)
-    sampled_data = [vocalization[p[0]*spec_step-fft_res:p[-1]*spec_step+fft_res]
-                     for p in dtw_paths]
+    motif_intervals = _np.array([_np.array([p[0], p[-1]])*spec_step+fft_res
+                                 for p in dtw_paths])
 
-
-    return sampled_data, spectrograms, dtw_paths
+    return motif_intervals, spectrograms, dtw_paths, distances
        
 
 def cluster_motifs(spectrograms, nclusters=10):
@@ -329,3 +332,34 @@ def cluster_motifs(spectrograms, nclusters=10):
 
     return id, mean_spectrograms
 
+def align_events(dtw_path, events, fs_temp, fs_voc):
+    '''
+    Aligns events according to a dtw path
+    Parameters
+    ----------
+    dtw_path - A 1d array containing the dtw path that will be used to align the 
+               spikes
+    events - A 1d array containing the event times to be aligned to the warpred spectrogram.
+             The the times should be given in units of seconds. 
+    fs_voc - sampling rate of the vocalization
+    fs_temp - sampling rate of the template
+
+    Returns
+    -------
+    aligned_events - 1d array containing the aligned events.  Events occuring outside the 
+                     interval containing the template match will not be included
+    '''
+    spec_step_temp = int(tstep*fs_temp)
+    spec_step_voc = int(tstep*fs_voc)
+    
+    #spectrogram time axis of template in samples
+    temp_samples = _np.arange(len(dtw_path))*spec_step_temp + fft_res 
+
+    #spectrogram time axis of vocalization in samples
+    voc_samples = dtw_path*spec_step_voc + fft_res 
+    
+    interp = _interp1d(voc_samples, temp_samples) 
+    filtered_events = _np.array([e for e in events if voc_samples[0] < e < voc_samples[-1]])
+    aligned_events = interp(filtered_events)
+
+    return aligned_events
