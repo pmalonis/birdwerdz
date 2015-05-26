@@ -8,7 +8,7 @@ Birdwerdz is a Python 2 package which requires the packages Cython, numpy, scipy
 
 ### Installation
 To install, clone this repository, cd into the repository folder, and enter this command as root:
-  python setup.py install
+    python setup.py install
 
 ### Overview
 
