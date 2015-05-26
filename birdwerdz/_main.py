@@ -2,8 +2,31 @@
 import argparse
 from birdwerdz import hdf
 import inspect
+import re
 
 def func2parser(func, description_sep="Parameters", arg_sep=":", subparsers=None):
+    '''Converts a function object to an argparse argument parser. The doc string
+    is processed to supply the arguments to the argument parser
+    
+    Parameters
+    ----------
+    func : function to convert to argument parser
+    description_sep : string that separates general help from argument specific help
+
+    arg_sep : string that separates argument name from argument help
+
+    subparsers : subparsers object. If given, a subparser corresponding to the 
+    given function will be added to the subparsers object, and the subparsers object  
+    will be returned. Otherwise, a single argument parser will be returned
+ 
+    Returns
+    -------
+    parser : Argument parser or subparsers object that will be added to 
+    
+    arg_dict : dictionary whose keys are argument names and values are 
+    argparse argument objects
+    '''
+
     description = func.__doc__.split(description_sep)[0]
     if subparsers:
         parser = subparsers.add_parser(func.__name__,
@@ -16,6 +39,10 @@ def func2parser(func, description_sep="Parameters", arg_sep=":", subparsers=None
                                          formatter_class=
                                          argparse.ArgumentDefaultsHelpFormatter)
     arg_help = func.__doc__.split(arg_sep)[1:]
+    
+    for i in xrange(len(arg_help)-1): #removes argument names from help string
+        arg_help[i] = ' '.join(arg_help[i].split()[:-1])
+ 
     args,_,_,defaults = inspect.getargspec(func)
     if not defaults: defaults = ()
     flag_list=[]
