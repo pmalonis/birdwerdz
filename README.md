@@ -3,6 +3,9 @@
 Birdwerdz is an automated birdsong recongnitzion tool based on an algorithm published by Fantana 
 and Kozhevnikov (2014). 
 
+### Requirements
+Birdwerdz is a Python 2 package which requires the packages Cython, numpy, scipy, matplotlib, and [arf](https://github.com/margoliashlab/arf).
+
 ### Installation
 
 -----------
