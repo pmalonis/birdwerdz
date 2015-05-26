@@ -21,7 +21,7 @@ results.
   
 ### Command-line interface
 
-The command-line interface works with hdf5 files saved according to the [arf](https://github.com/margoliashlab/arf) standard. Your recordings should be saved as arf datasets. Make sure that the datatype attribute of these datasets is set to 1 (the code for audio data), so that the program knows which recordings in the file to analyze. The arf file should also contain a template recording, and a label dataset which labels events or intervals in the template. The end result after running through the birdwerdz procedure will be that the original arf file will have added to it 
+The command-line interface works with hdf5 files saved according to the [arf](https://github.com/margoliashlab/arf) standard. Your recordings should be saved as arf datasets. Make sure that the datatype attribute of these datasets is set to 1 (the code for audio data), so that the program knows which recordings in the file to analyze. The arf file should also contain a template recording, and a label dataset which labels events or intervals in the template.
 
 To use the birdwerdz command-line interface, enter commands of the form "birdwerdz [command]." The available commands are "classify", 'cluster", "label", "plot", and "select." Entering "birdwerdz -h" will list these commands and their descriptions. Entering "birdwerdz [command] -h" will print the documentation for each command. 
 
