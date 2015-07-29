@@ -40,12 +40,15 @@ def process_recording(signal, fs):
     spec[spec==0]=_np.min(spec[spec!=0])
     log_spec = _np.log(spec)
 
-    return log_spec
+    max_freq = 10000
+    max_idx = int(max_freq/(float(fs)/win_len))
+
+    return log_spec[:max_idx,:]
 
 
 @cython.boundscheck(False)
 def _dist_mat(_np.ndarray[_DTYPE_t, ndim=2] V_spec, 
-             _np.ndarray[_DTYPE_t, ndim=2] T_spec):
+              _np.ndarray[_DTYPE_t, ndim=2] T_spec):
     """
     Creates the distance matrix between the vocalization spectrogram
     """
