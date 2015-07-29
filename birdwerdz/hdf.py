@@ -13,18 +13,21 @@ import arf
 import matplotlib.pyplot as plt
 
 
-def classify(recordings, template, output_name, nclusters=10):
+def classify(recordings, template, output_name, dataset_name=None, nclusters=10):
     """
     Finds potential instances of given motif and clusters them into groups for further analysis
 
     Parameters
     ----------
-    recordings : The name of an arf(hdf5) file containing the recordings to be analyzed. Recording
-                 datasets must have datatype set to 1, or ACOUSTIC, as per the arf specification. Each
-                 recording dataset must also be in a separate group.
+    recordings : The name of an arf(hdf5) file containing the recordings to be analyzed. By default, 
+                 recording only datasets that have datatype set to 1, or 
+                 (ACOUSTIC as per the arf specification) will be analyzed. Alternatively, 
+                 you can use the dataset_name argument to specify that name of the dataset within
+                 each group that you want analyzed.
     template : Recording of motif to be identified.  May be either a path to the recording dataset within
                 the arf file or the name of a wave file
     output_name : Name of output hdf5 file. Must be given for wave recordings
+    dataset_name : Name of datasets that consist of audio recodings to be analyzed.
     clusters : Number of clusters to use for k-means clustering
     """
     try:
@@ -39,11 +42,16 @@ def classify(recordings, template, output_name, nclusters=10):
             for entry in src.itervalues():
                 if not isinstance(entry, h5py.Group): continue
                 try:
-                    dataset = (dset for dset in entry.values() if
-                               ('datatype' in dset.attrs.iterkeys() and
-                                dset.attrs['datatype'] == 1)).next()
+                    if dataset_name is None:
+                        # finds first dataset in entry.values() with datatype set to 1 (acoustic) 
+                        dataset = (dset for dset in entry.values() if
+                                   ('datatype' in dset.attrs.iterkeys() and
+                                    dset.attrs['datatype'] == 1)).next()
+                    else:
+                        dataset = entry[dataset_name]
                 except StopIteration:
                     continue
+
                 recording_names.append(dataset.name.split('/')[-1])
                 out.create_group(entry.name)
 
