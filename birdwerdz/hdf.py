@@ -36,18 +36,18 @@ def classify(recordings, template, output_name, nclusters=10):
         # creating output hdf5/arf file    
         with h5py.File(recordings,'r') as src:
             recording_names = [] # name of recording datasets
-            for entry in src.values():
+            for entry in src.itervalues():
                 if not isinstance(entry, h5py.Group): continue
                 try:
                     dataset = (dset for dset in entry.values() if
-                               ('datatype' in dset.attrs.keys() and
+                               ('datatype' in dset.attrs.iterkeys() and
                                 dset.attrs['datatype'] == 1)).next()
                 except StopIteration:
                     continue
                 recording_names.append(dataset.name.split('/')[-1])
                 out.create_group(entry.name)
 
-        for entry, dataset in zip(out.values(), recording_names):
+        for entry, dataset in zip(out.itervalues(), recording_names):
             entry[dataset] = h5py.ExternalLink(recordings, entry.name + '/' + dataset)
 
         # Copying template
@@ -55,7 +55,7 @@ def classify(recordings, template, output_name, nclusters=10):
             with h5py.File(recordings,'r') as src:
                 out.copy(src[template], 'template')
                 template=out['template']
-                if 'sampling_rate' not in out['template'].attrs.keys():
+                if 'sampling_rate' not in out['template'].attrs.iterkeys():
                     out['template'].attrs['sampling_rate'] = 20000
                 fs_temp=out['template'].attrs['sampling_rate']
         except Exception as e:
@@ -167,8 +167,7 @@ def cluster(file, nclusters=10):
         k=0
         for entry in f.itervalues():
             if (not isinstance(entry,h5py.Group)
-                or 'motifs' not in entry.keys()): continue
-            print(entry.name)
+                or 'motifs' not in entry.keys()): continue          
             n = entry['motifs'].size
             all_amp_vectors[k:k+n,:] = entry['motifs']['spectrogram'].sum(1)
             k += n
@@ -182,7 +181,6 @@ def cluster(file, nclusters=10):
             if (not isinstance(entry,h5py.Group)
                 or 'motifs' not in entry.keys()): continue
             for spec in entry['motifs']['spectrogram']:
-                print(entry.name)
                 mean_spectrograms[id[i],:,:] *= i/(i+1)
                 mean_spectrograms[id[i],:,:] += spec/(i+1)
                 i += 1
