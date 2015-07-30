@@ -13,7 +13,7 @@ import arf
 import matplotlib.pyplot as plt
 
 
-def classify(recordings, template, output_name, dataset_name=None, nclusters=10):
+def classify(recordings, template, output_name, dataset_name='', nclusters=10):
     """
     Finds potential instances of given motif and clusters them into groups for further analysis
 
@@ -42,7 +42,7 @@ def classify(recordings, template, output_name, dataset_name=None, nclusters=10)
             for entry in src.itervalues():
                 if not isinstance(entry, h5py.Group): continue
                 try:
-                    if dataset_name is None:
+                    if dataset_name == '':
                         # finds first dataset in entry.values() with datatype set to 1 (acoustic) 
                         dataset = (dset for dset in entry.values() if
                                    ('datatype' in dset.attrs.iterkeys() and
