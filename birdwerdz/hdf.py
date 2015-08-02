@@ -194,10 +194,16 @@ def cluster(file, nclusters=10):
                 i += 1
 
         cluster_path = 'cluster_mean_spectrograms'
+
         if cluster_path in f.keys():
             del f[cluster_path]
 
         f.create_dataset(cluster_path, data=mean_spectrograms)
+
+        # counting number of examples in each cluster and saving as attribute
+        cluster_sizes,_ = np.histogram(id, range(nclusters+1))
+        f[cluster_path].attrs['cluster_sizes'] = cluster_sizes
+
 
                 
 def plot(motif_file):
@@ -217,22 +223,21 @@ def plot(motif_file):
         y_ax.set_label_text('Template')
         y_ax.label.set_horizontalalignment('right')
 
-    def cluster_yaxis(y_ax, idx):
+    def cluster_yaxis(y_ax, label, txt_size=20, y_pos=.25, alignment='right'):
         y_ax.label.set_rotation(0)
-        y_ax.label.set_size(20)
-        y_ax.label.set_y(.25)
+        y_ax.label.set_size(txt_size)
+        y_ax.label.set_y(y_pos)
         y_ax.set_ticks([])
-        y_ax.set_label_text(idx)
-        y_ax.label.set_horizontalalignment('right')
+        y_ax.set_label_text(label)
+        y_ax.label.set_horizontalalignment(alignment)
     
     with h5py.File(motif_file,'r+') as motifs_hdf:            
 
         cluster_path = 'cluster_mean_spectrograms'
         template_path = 'template'
-
         nplots = motifs_hdf[cluster_path].shape[0] + 2
-
-        T_spec=dtw.process_recording(motifs_hdf['template'], motifs_hdf[template_path].attrs['sampling_rate'])
+        T_spec = dtw.process_recording(motifs_hdf['template'], 
+                                       motifs_hdf[template_path].attrs['sampling_rate'])
 
         f=plt.figure(figsize=(10,10))
 
@@ -243,8 +248,24 @@ def plot(motif_file):
         sp.xaxis.set_visible(False)
 
         for i,spectrogram in enumerate(motifs_hdf[cluster_path]):
-            spec_sp = f.add_subplot(nplots,1,i+3)
-            spec_sp.imshow(spectrogram, origin='lower', aspect='auto')
+            if i == 0:
+                spec_min = spectrogram.min()
+                spec_max = spectrogram.max()
+
+            spec_sp = f.add_subplot(nplots, 1, i+3)
+            spec_sp.imshow(spectrogram, origin='lower', aspect='auto',
+                           vmin=spec_min, vmax=spec_max)
+
+            # transparent axis that will be used to print the number of examples 
+            # on the right side of the plot
+            right_axis_sp = f.add_subplot(nplots, 1, i+3, 
+                                          sharex=sp, frameon=False) 
+
+            right_axis_sp.yaxis.tick_right()
+            right_axis_sp.yaxis.set_label_position('right')
+            n_examples = motifs_hdf[cluster_path].attrs['cluster_sizes'][i]
+            cluster_yaxis(right_axis_sp.yaxis, 'n=%d'%n_examples, 
+                          txt_size=12, y_pos=.75, alignment='left')
             cluster_yaxis(spec_sp.yaxis, i)
             if i == 0:
                 spec_sp.set_title('Cluster Mean Spectrograms')
