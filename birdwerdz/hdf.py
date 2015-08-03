@@ -340,7 +340,7 @@ def label(motif_file, recordings, label, label_name = 'auto_lbl'): #
         with h5py.File(motif_file, 'r+') as motif:
             #getting length of template spectrogram
             template_len = None
-            for entry in f.itervalues():
+            for entry in motif.itervalues():
                 if (isinstance(entry,h5py.Group)
                     and 'motifs' in entry.keys()
                     and entry['motifs'].size):
