@@ -337,11 +337,22 @@ def label(motif_file, recordings, label, label_name = 'auto_lbl'): #
             spec_res = dtw.tstep*float(sr)
             unit_args['sampling_rate'] = sr
 
-        start_idx = [int(start/spec_res) for start in template_lbl['start']]
-        stop_idx = [int(stop/spec_res) for stop in template_lbl['stop']]
-
-        names = template_lbl['name']
         with h5py.File(motif_file, 'r+') as motif:
+            #getting length of template spectrogram
+            template_len = None
+            for entry in f.itervalues():
+                if (isinstance(entry,h5py.Group)
+                    and 'motifs' in entry.keys()
+                    and entry['motifs'].size):
+                    template_len = int(entry['motifs']['dtw_path'].shape[0]/spec_res)
+                    break
+            
+            if template_len is None:
+                return
+            
+            start_idx = [max(0,int(start/spec_res)) for start in template_lbl['start']]
+            stop_idx = [min(int(stop/spec_res),template_len) for stop in template_lbl['stop']]
+            names = template_lbl['name']
             for entry in motif.values():
                 if (not isinstance(entry,h5py.Group) or 'motifs' not in entry.keys()
                     or not entry['motifs'].size):
