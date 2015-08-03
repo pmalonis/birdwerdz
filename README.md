@@ -12,7 +12,7 @@ To install, clone this repository, cd into the repository folder, and enter this
     python setup.py install
 
 ### Overview
-The algorithm uses DTW to find potential matches it a recording to a given template.  These 
+The algorithm uses dynamic time-warping to find potential matches it a recording to a given template.  These 
 matches represent local minima in the space of mappings between the template recording 
 and the recording to be analyzed.  This set of matches contains all of the examples of the 
 template vocalization, as well as many false positives.  In the second step of the algorithm a 
