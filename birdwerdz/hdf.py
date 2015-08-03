@@ -344,13 +344,12 @@ def label(motif_file, recordings, label, label_name = 'auto_lbl'): #
                 if (isinstance(entry,h5py.Group)
                     and 'motifs' in entry.keys()
                     and entry['motifs'].size):
-                    template_len = int(entry['motifs']['dtw_path'].shape[0]/spec_res)
+                    template_len = entry['motifs']['dtw_path'].shape[0]
                     break
             
             if template_len is None:
                 return
             
-            print(template_len)
             start_idx = [max(0,int(start/spec_res)) for start in template_lbl['start']]
             stop_idx = [min(int(stop/spec_res),template_len) for stop in template_lbl['stop']]
             names = template_lbl['name']
