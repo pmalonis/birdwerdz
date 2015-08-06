@@ -21,7 +21,7 @@ cdef extern void assign_D (_DTYPE_t* distance, _DTYPE_t* D_entry, int* T_entry, 
    
 def process_recording(signal, fs, 
                       win_len=256, noise_cutoff=500, 
-                      numtaps=101, t_step=.001):
+                      numtaps=101, tstep=.001):
 
     """
     Applies a high-pass filter to the data returns the spectrogram   
@@ -33,7 +33,7 @@ def process_recording(signal, fs,
     win_len - length of window used to compute spectrogram, in samples
     noise_cutoff - cutoff frequency for high pass filter
     numtaps - Number of filter taps 
-    t_step - Time step of spectrogram in seconds
+    tstep - Time step of spectrogram in seconds
     
     """
     #filter parameters
@@ -278,7 +278,7 @@ def _get_paths(D, T, d,  t_0=0):
 
 
 def find_matches(vocalization, template, fs_voc, fs_temp, 
-                 win_len=256, t_step=.001):
+                 win_len=256, tstep=.001):
       
     """
     Finds potential matches to a template motif in a recorded vocalization.
@@ -317,12 +317,13 @@ def find_matches(vocalization, template, fs_voc, fs_temp,
     D,T=_accumulated_dist(d)
 
     dtw_paths,distances=_get_paths(D, T, d)
-
     spectrograms = _np.zeros((dtw_paths.shape[0],) + T_spec.shape)
     for i,p in enumerate(dtw_paths):
         spectrograms[i,:,:] = V_spec[:,p]
     
     spec_step = int(tstep*fs_voc)
+  
+    fft_res = win_len/2
     motif_intervals = _np.array([_np.array([p[0], p[-1]])*spec_step+fft_res
                                  for p in dtw_paths])
 
@@ -344,7 +345,7 @@ def cluster_motifs(spectrograms, nclusters=10):
     return id, mean_spectrograms
 
 def align_events(dtw_path, events, fs_temp, fs_voc,
-                 win_len=256, t_step=.001):
+                 win_len=256, tstep=.001):
     '''
     Aligns events according to a dtw path
     Parameters
@@ -355,6 +356,9 @@ def align_events(dtw_path, events, fs_temp, fs_voc,
              The the times should be given in units of seconds. 
     fs_voc - sampling rate of the vocalization
     fs_temp - sampling rate of the template
+    win_len - length of window used to compute spectrogram, in samples
+    tstep - Time step of spectrogram in seconds
+
 
     Returns
     -------

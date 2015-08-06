@@ -14,10 +14,9 @@ import matplotlib.pyplot as plt
 
 
 def classify(recordings, template, output_name, 
-             dataset_name='', nclusters=10, t_step=.001,
+             dataset_name='', nclusters=10, tstep=.001,
              win_len=256, noise_cutoff=500, 
              numtaps=101):
-):
     """
     Finds potential instances of given motif and clusters them into groups for further analysis
 
@@ -33,10 +32,10 @@ def classify(recordings, template, output_name,
     output_name : Name of output hdf5 file. Must be given for wave recordings
     dataset_name : Name of datasets that consist of audio recodings to be analyzed.
     clusters : Number of clusters to use for k-means clustering
+    tstep : Time step of spectrogram in seconds
     win_len : length of window used to compute spectrogram, in samples
     noise_cutoff : cutoff frequency for high pass filter
     numtaps : Number of filter taps 
-    t_step : Time step of spectrogram in seconds
     """
     try:
         h5py.File(output_name, 'w-').close()
@@ -102,7 +101,7 @@ def classify(recordings, template, output_name,
                                         ('spectrogram', float, spec_shape),
                                         ('dtw_path', int, (path_length,))])
             entry.create_dataset('motifs', data=motif_rec)
-            if data.size > 0:
+            if motif_rec.size > 0:
                 entry['motifs'].attrs['win_len'] = win_len
                 entry['motifs'].attrs['noise_cutoff'] = noise_cutoff
                 entry['motifs'].attrs['tstep'] = tstep
