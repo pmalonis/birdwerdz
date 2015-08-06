@@ -18,20 +18,29 @@ cdef inline double d_min(double a, double b): return a if a <= b else b
 cdef extern void distance(_DTYPE_t* a, _DTYPE_t* b, _DTYPE_t* dist_mat_ptr, int length) 
 cdef extern void assign_D (_DTYPE_t* distance, _DTYPE_t* D_entry, int* T_entry, int nargs, ... )     
 
-
-#spectrogram parameters
-tstep = .001
-fft_res = 256
-win_len = fft_res*2
-window = _signal.hann(win_len)
    
-def process_recording(signal, fs):
+def process_recording(signal, fs, 
+                      win_len=256, noise_cutoff=500, 
+                      numtaps=101, t_step=.001):
+
     """
-    Applies a high-pass filter to the data and computes the spectrogram   
+    Applies a high-pass filter to the data returns the spectrogram   
+    
+    Parameters
+    ----------
+    signal - signal to be analyzed
+    fs - sampling rate
+    win_len - length of window used to compute spectrogram, in samples
+    noise_cutoff - cutoff frequency for high pass filter
+    numtaps - Number of filter taps 
+    t_step - Time step of spectrogram in seconds
+    
     """
     #filter parameters
     noise_cutoff= 500
     numtaps = 101
+
+    window = _signal.hann(win_len)
 
     b = _signal.firwin(numtaps, noise_cutoff, pass_zero=False,  nyq=fs/2.)
     filtered = _signal.lfilter(b, 1, signal)    
@@ -148,7 +157,6 @@ def _get_endpoints(D):
 
     return endpoints
     
-
 
 def _backtrack(int i_end, _np.ndarray[int,ndim=2] T):
 
@@ -269,7 +277,8 @@ def _get_paths(D, T, d,  t_0=0):
     return paths, distances
 
 
-def find_matches(vocalization, template, fs_voc, fs_temp):
+def find_matches(vocalization, template, fs_voc, fs_temp, 
+                 win_len=256, t_step=.001):
       
     """
     Finds potential matches to a template motif in a recorded vocalization.
@@ -301,7 +310,6 @@ def find_matches(vocalization, template, fs_voc, fs_temp):
     distances - A 1d array containing the distance of each match's spectrogram to the 
                 template spectrogram
     """
-
         
     T_spec = process_recording(template, fs_temp)
     V_spec = process_recording(vocalization, fs_voc)
@@ -335,7 +343,8 @@ def cluster_motifs(spectrograms, nclusters=10):
 
     return id, mean_spectrograms
 
-def align_events(dtw_path, events, fs_temp, fs_voc):
+def align_events(dtw_path, events, fs_temp, fs_voc,
+                 win_len=256, t_step=.001):
     '''
     Aligns events according to a dtw path
     Parameters
@@ -352,6 +361,9 @@ def align_events(dtw_path, events, fs_temp, fs_voc):
     aligned_events - 1d array containing the aligned events.  Events occuring outside the 
                      interval containing the template match will not be included
     '''
+
+    fft_res = win_len/2
+
     spec_step_temp = int(tstep*fs_temp)
     spec_step_voc = int(tstep*fs_voc)
     

@@ -13,7 +13,11 @@ import arf
 import matplotlib.pyplot as plt
 
 
-def classify(recordings, template, output_name, dataset_name='', nclusters=10):
+def classify(recordings, template, output_name, 
+             dataset_name='', nclusters=10, t_step=.001,
+             win_len=256, noise_cutoff=500, 
+             numtaps=101):
+):
     """
     Finds potential instances of given motif and clusters them into groups for further analysis
 
@@ -29,6 +33,10 @@ def classify(recordings, template, output_name, dataset_name='', nclusters=10):
     output_name : Name of output hdf5 file. Must be given for wave recordings
     dataset_name : Name of datasets that consist of audio recodings to be analyzed.
     clusters : Number of clusters to use for k-means clustering
+    win_len : length of window used to compute spectrogram, in samples
+    noise_cutoff : cutoff frequency for high pass filter
+    numtaps : Number of filter taps 
+    t_step : Time step of spectrogram in seconds
     """
     try:
         h5py.File(output_name, 'w-').close()
@@ -94,6 +102,13 @@ def classify(recordings, template, output_name, dataset_name='', nclusters=10):
                                         ('spectrogram', float, spec_shape),
                                         ('dtw_path', int, (path_length,))])
             entry.create_dataset('motifs', data=motif_rec)
+            if data.size > 0:
+                entry['motifs'].attrs['win_len'] = win_len
+                entry['motifs'].attrs['noise_cutoff'] = noise_cutoff
+                entry['motifs'].attrs['tstep'] = tstep
+                entry['motifs'].attrs['numtaps'] = numtaps
+                
+
             print("Found matches for %s" %(entry.name))
 
     #clustering
@@ -203,8 +218,6 @@ def cluster(file, nclusters=10):
         # counting number of examples in each cluster and saving as attribute
         cluster_sizes,_ = np.histogram(id, range(nclusters+1))
         f[cluster_path].attrs['cluster_sizes'] = cluster_sizes
-
-
                 
 def plot(motif_file):
     """
@@ -313,7 +326,8 @@ def select(file, output, clusters=None):
             entry.create_dataset('motifs',data=new_motifs)
         
 
-def label(motif_file, recordings, label, label_name = 'auto_lbl'): # 
+def label(motif_file, recordings, label, 
+          label_name='auto_lbl'): # 
     """
     Creates label entry from motif matches
     Parameters
@@ -329,12 +343,12 @@ def label(motif_file, recordings, label, label_name = 'auto_lbl'): #
         units = template_lbl.attrs['units']
         unit_args = {'units' : ['', units, units]}
         if units == 's':
-            spec_res = dtw.tstep
+            spec_res = tstep
         elif units  == 'ms':
-            spec_res = dtw.tstep * 1000 
+            spec_res = tstep * 1000 
         elif units == 'samples':
             sr = template_lbl.attrs['sampling_rate']
-            spec_res = dtw.tstep*float(sr)
+            spec_res = tstep*float(sr)
             unit_args['sampling_rate'] = sr
 
         with h5py.File(motif_file, 'r+') as motif:
