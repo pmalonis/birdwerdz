@@ -278,7 +278,7 @@ def _get_paths(D, T, d,  t_0=0):
 
 
 def find_matches(vocalization, template, fs_voc, fs_temp, 
-                 win_len=256, tstep=.001):
+                 win_len=256, tstep=.001, all_spectrograms=True):
       
     """
     Finds potential matches to a template motif in a recorded vocalization.
@@ -299,10 +299,12 @@ def find_matches(vocalization, template, fs_voc, fs_temp,
     motif_intervals - a 2d array in which each row contains the start and stop sample
                       for each match
 
-    spectrograms - a 3d array containing the temporally warped spectrograms of each match.
+    spectrogram - If all_spectrograms=True, a 3d array containing the temporally warped spectrograms of each match.
                    The first dimension represents individual matches, the second dimension
                    the frequency axis of the spectrogram, and the third the time axis.
-                    
+                  If all_spectrograms=False, just the spectrogram for the full
+                   vocalization is returned, and the match spectrograms can be
+                   recovered using the indexes stored in "dtw_paths." 
     dtw_paths - a 2d array in which each row contains the indices 
                 of the columns of the vocalization spectrogram used in the temporally
                 warped spectrograms
@@ -317,17 +319,21 @@ def find_matches(vocalization, template, fs_voc, fs_temp,
     D,T=_accumulated_dist(d)
 
     dtw_paths,distances=_get_paths(D, T, d)
-    spectrograms = _np.zeros((dtw_paths.shape[0],) + T_spec.shape)
-    for i,p in enumerate(dtw_paths):
-        spectrograms[i,:,:] = V_spec[:,p]
-    
+
+    if all_spectrograms:
+        spectrogram = _np.zeros((dtw_paths.shape[0],) + T_spec.shape)
+        for i,p in enumerate(dtw_paths):
+            spectrogram[i,:,:] = V_spec[:,p]
+    else:
+        spectrogram = V_spec
+            
     spec_step = int(tstep*fs_voc)
   
     fft_res = win_len/2
     motif_intervals = _np.array([_np.array([p[0], p[-1]])*spec_step+fft_res
                                  for p in dtw_paths])
 
-    return motif_intervals, spectrograms, dtw_paths, distances
+    return motif_intervals, spectrogram, dtw_paths, distances
        
 
 def cluster_motifs(spectrograms, nclusters=10):
