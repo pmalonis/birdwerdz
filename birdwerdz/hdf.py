@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 def classify(recordings, template, output_name, 
              dataset_name='', nclusters=10, tstep=.001,
              win_len=256, noise_cutoff=500, 
-             numtaps=101):
+             numtaps=101, max_freq=10000):
     """
     Finds potential instances of given motif and clusters them into groups for further analysis
 
@@ -35,7 +35,8 @@ def classify(recordings, template, output_name,
     tstep : Time step of spectrogram in seconds
     win_len : length of window used to compute spectrogram, in samples
     noise_cutoff : cutoff frequency for high pass filter
-    numtaps : Number of filter taps 
+    numtaps : Number of filter taps
+    max_freq : Maximum frequency in the spectrogram to analyze
     """
     try:
         h5py.File(output_name, 'w-').close()
@@ -84,8 +85,8 @@ def classify(recordings, template, output_name,
             vocalization = entry.values()[0]
             fs_voc = vocalization.attrs['sampling_rate']                
 
-            sampled_data, spectrograms, dtw_paths,_ = dtw.find_matches(
-                    vocalization, template, fs_voc, fs_temp)
+            sampled_data, spectrogram, dtw_paths,_ = dtw.find_matches(
+                    vocalization, template, fs_voc, fs_temp, all_spectrograms=False)
 
             #resizing sampled data so it can be put in array
             max_motif_len = max(len(motif) for motif in sampled_data)                        
@@ -93,15 +94,19 @@ def classify(recordings, template, output_name,
                             for motif in sampled_data]
 
             #putting data in rec_array and saving in hdf5 dataset
-            spec_shape = spectrograms.shape[1:]
+            freq_size = spectrogram.shape[0] #size of frequency axis of spectrogram
             path_length = dtw_paths.shape[1]
-            zipped_motifs = zip(sampled_data, spectrograms, dtw_paths)
-            motif_rec = np.array(zipped_motifs,
-                                 dtype=[('sampled_data', float, (max_motif_len,)),
-                                        ('spectrogram', float, spec_shape),
-                                        ('dtw_path', int, (path_length,))])
-            entry.create_dataset('motifs', data=motif_rec)
-            if motif_rec.size > 0:
+            spec_shape = (freq_size, dtw_paths.shape[1])
+            dtype=[('motif_interval', float, (max_motif_len,)),
+                   ('spectrogram', float, spec_shape),
+                   ('dtw_path', int, (path_length,))]
+            nmatches = len(dtw_paths)
+            entry.create_dataset('motifs', shape=(nmatches,), dtype=dtype)
+            for i in xrange(nmatches):
+                entry['motifs'][i] = (sampled_data[i], 
+                                      spectrogram[:, dtw_paths[i]], 
+                                      dtw_paths[i])
+            if nmatches > 0:
                 entry['motifs'].attrs['win_len'] = win_len
                 entry['motifs'].attrs['noise_cutoff'] = noise_cutoff
                 entry['motifs'].attrs['tstep'] = tstep

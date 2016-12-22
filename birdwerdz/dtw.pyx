@@ -21,7 +21,7 @@ cdef extern void assign_D (_DTYPE_t* distance, _DTYPE_t* D_entry, int* T_entry, 
    
 def process_recording(signal, fs, 
                       win_len=256, noise_cutoff=500, 
-                      numtaps=101, tstep=.001):
+                      numtaps=101, tstep=.001, max_freq=10000):
 
     """
     Applies a high-pass filter to the data returns the spectrogram   
@@ -34,7 +34,7 @@ def process_recording(signal, fs,
     noise_cutoff - cutoff frequency for high pass filter
     numtaps - Number of filter taps 
     tstep - Time step of spectrogram in seconds
-    
+    max_freq - maximum frequency in the spectrogram to return
     """
     #filter parameters
     noise_cutoff= 500
@@ -328,7 +328,7 @@ def find_matches(vocalization, template, fs_voc, fs_temp,
         spectrogram = V_spec
             
     spec_step = int(tstep*fs_voc)
-  
+
     fft_res = win_len/2
     motif_intervals = _np.array([_np.array([p[0], p[-1]])*spec_step+fft_res
                                  for p in dtw_paths])
